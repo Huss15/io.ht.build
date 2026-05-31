@@ -1,4 +1,4 @@
-rootProject.name = "build"
+rootProject.name = "io.ht.build"
 
 pluginManagement {
     repositories {
