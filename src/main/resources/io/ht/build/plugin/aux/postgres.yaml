@@ -1,0 +1,93 @@
+# Postgres dev deployment for SUT clusters.
+# Shipped with io.ht.build.plugin and auto-applied at order 1 when:
+#
+#   sut {
+#       auxServices {
+#           postgres { enabled = true }
+#       }
+#   }
+#
+# NOT for production. Defaults: db=sut, user=sut, password=sut, port=5432, ephemeral storage.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+    io.ht.build.plugin/aux: postgres
+type: Opaque
+stringData:
+  POSTGRES_DB: sut
+  POSTGRES_USER: sut
+  POSTGRES_PASSWORD: sut
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+    io.ht.build.plugin/aux: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+        io.ht.build.plugin/aux: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: pg
+              containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: postgres
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "sut", "-d", "sut"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "sut", "-d", "sut"]
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+    io.ht.build.plugin/aux: postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+    - name: pg
+      port: 5432
+      targetPort: pg
