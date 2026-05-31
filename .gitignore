@@ -4,3 +4,10 @@
 .idea/
 *.iml
 out/
+
+### Kotlin ###
+/.kotlin/sessions/
+/.kotlin/errors/
+jte-classes/
+*.salive
+/buildSrc/.kotlin/
