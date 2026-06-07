@@ -23,7 +23,8 @@ jobs:
       - name: Install SDKMAN
         shell: bash
         run: |
-          curl -s "https://get.sdkman.io" | bash < /dev/null
+          curl -fsSL "https://get.sdkman.io" -o /tmp/sdkman-install.sh
+          bash /tmp/sdkman-install.sh < /dev/null
 
       - name: Install SDKMAN environment
         shell: bash
