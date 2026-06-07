@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.ht"
-version = "0.0.1-SNAPSHOT"
+version = providers.gradleProperty("artifactVersion").orElse("0.0.1-SNAPSHOT").get()
 description = "HT build plugin: SUT (kind cluster) lifecycle and shared Spring Boot build helpers"
 
 repositories {
@@ -23,7 +23,7 @@ java {
 dependencies {
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
-    testImplementation("org.assertj:assertj-core:3.26.3")
+    testImplementation("org.assertj:assertj-core:3.27.7")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
