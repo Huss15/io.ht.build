@@ -41,6 +41,21 @@ gradlePlugin {
 publishing {
     repositories {
         mavenLocal()
+
+        val githubRepository = System.getenv("GITHUB_REPOSITORY")
+        val githubActor = System.getenv("GITHUB_ACTOR")
+        val githubToken = System.getenv("GITHUB_TOKEN")
+
+        if (!githubRepository.isNullOrBlank() && !githubActor.isNullOrBlank() && !githubToken.isNullOrBlank()) {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/$githubRepository")
+                credentials {
+                    username = githubActor
+                    password = githubToken
+                }
+            }
+        }
     }
 }
 
