@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Build and Test
+    name: Build, Test, and Package
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -20,11 +20,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install SDKMAN
+        shell: bash
+        run: |
+          curl -s "https://get.sdkman.io" | bash < /dev/null
+
       - name: Install SDKMAN environment
         shell: bash
         run: |
           source "$HOME/.sdkman/bin/sdkman-init.sh"
-          sdk env install
+          sdk env
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
@@ -34,15 +39,15 @@ jobs:
         shell: bash
         run: |
           release_date=$(date +%Y%m%d)
-          echo "artifact_version=1.0-${release_date}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "artifact_version=1.0-${release_date}" >> "$GITHUB_OUTPUT"
 
       - name: Run tests and build
-        run: ./gradlew -PartifactVersion="${{ steps.version.outputs.artifact_version }}" clean test build
+        run: ./gradlew -Pversion="${{ steps.version.outputs.artifact_version }}" test build
 
-      - name: Upload build artifact
+      - name: Upload versioned build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gradle-build-artifacts-${{ steps.version.outputs.artifact_version }}
+          name: build-${{ steps.version.outputs.artifact_version }}
           path: |
             build/libs/*.jar
             build/publications/**

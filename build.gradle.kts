@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.ht"
-version = providers.gradleProperty("artifactVersion").orElse("0.0.1-SNAPSHOT").get()
+version = providers.gradleProperty("version").orElse("0.0.1-SNAPSHOT").get()
 description = "HT build plugin: SUT (kind cluster) lifecycle and shared Spring Boot build helpers"
 
 repositories {
