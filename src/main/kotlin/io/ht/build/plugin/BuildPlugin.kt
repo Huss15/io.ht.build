@@ -51,6 +51,10 @@ class BuildPlugin : Plugin<Project> {
         extension.auxServices.minio.order
             .convention(MinioAux.DEFAULT_ORDER)
         // NOTE: minio.bucket has NO convention — consumer must set it when enabled.
+        extension.auxServices.observability.enabled
+            .convention(false)
+        extension.auxServices.observability.order
+            .convention(ObservabilityAux.DEFAULT_ORDER)
 
         project.tasks.register<CheckSutDependencyTask>(CheckSutDependencyTask.NAME) {
             group = SUT_GROUP
@@ -303,6 +307,16 @@ class BuildPlugin : Plugin<Project> {
                 extension.auxServices.minio.order
                     .getOrElse(MinioAux.DEFAULT_ORDER)
             collected += DeploySutTask.ManifestEntry(MinioAux.NAME, order, manifest.absolutePath)
+        }
+
+        if (extension.auxServices.observability.enabled
+                .getOrElse(false)
+        ) {
+            val manifest = extractAuxManifest(project, ObservabilityAux.NAME, ObservabilityAux.RESOURCE_PATH)
+            val order =
+                extension.auxServices.observability.order
+                    .getOrElse(ObservabilityAux.DEFAULT_ORDER)
+            collected += DeploySutTask.ManifestEntry(ObservabilityAux.NAME, order, manifest.absolutePath)
         }
 
         extension.auxManifests.set(collected.sortedBy { it.order })

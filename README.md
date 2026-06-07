@@ -52,7 +52,9 @@ sut {
     auxServices {
         postgres {
             enabled = true     // off by default; when true, deploys at order 1
-            // order = 5       // optional override
+        }
+        observability {
+            enabled = true     // off by default; when true, deploys at order 3
         }
     }
 
@@ -107,6 +109,10 @@ sut {
             enabled = <Boolean>            // default: false
             order   = <Int>                // default: 1
         }
+        observability {
+            enabled = <Boolean>            // default: false
+            order   = <Int>                // default: 3
+        }
     }
 
     registry {
@@ -128,6 +134,7 @@ no need to write the YAML or `service(...)` block yourself.
 | Aux service | Enabled by default | Default order | Manifest contents                                                                                                  |
 |-------------|--------------------|---------------|--------------------------------------------------------------------------------------------------------------------|
 | `postgres`  | `false`            | `1`           | `Secret` + `Deployment` + `ClusterIP Service` for `postgres:16-alpine`, db/user/password = `sut`, port `5432`, ephemeral storage. **Dev/test only.** |
+| `observability`  | `false`            | `3`           | `Secret` + `Deployment` + `ClusterIP Service` for `grafana/otel-lgtm:0.8.1`, Grafana + Loki + Tempo + Prometheus + OTel Collector, ports `3000`, `4317`, `4318`, `3100`, `3200`, `9090`. **Dev/test only.** |
 
 To enable Postgres with defaults:
 
