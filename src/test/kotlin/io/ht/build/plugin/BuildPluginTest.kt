@@ -187,6 +187,80 @@ class BuildPluginTest {
     }
 
     @Test
+    fun `auxServices observability is disabled by default`() {
+        val project = ProjectBuilder.builder().build()
+        project.plugins.apply("io.ht.build")
+        val ext = project.extensions.getByType(SutExtension::class.java)
+
+        (project as org.gradle.api.internal.project.ProjectInternal).evaluate()
+
+        assertThat(
+            ext.auxServices.observability.enabled
+                .get(),
+        ).isFalse()
+        assertThat(ext.auxManifests.get().map { it.name }).doesNotContain(ObservabilityAux.NAME)
+        assertThat(ext.registry.services.findByName(ObservabilityAux.NAME)).isNull()
+    }
+
+    @Test
+    fun `enabling observability auto-registers it as an aux manifest at order 3`() {
+        val project = ProjectBuilder.builder().build()
+        project.plugins.apply("io.ht.build")
+        val ext = project.extensions.getByType(SutExtension::class.java)
+
+        ext.auxServices.observability {
+            enabled.set(true)
+        }
+
+        (project as org.gradle.api.internal.project.ProjectInternal).evaluate()
+
+        val aux = ext.auxManifests.get().first { it.name == ObservabilityAux.NAME }
+        assertThat(aux.order).isEqualTo(3)
+        val manifest = java.io.File(aux.path)
+        assertThat(manifest).exists()
+        val text = manifest.readText()
+        assertThat(text).contains("kind: Deployment")
+        assertThat(text).contains("grafana/otel-lgtm:0.8.1")
+        assertThat(ext.registry.services.findByName(ObservabilityAux.NAME)).isNull()
+    }
+
+    @Test
+    fun `observability order can be overridden`() {
+        val project = ProjectBuilder.builder().build()
+        project.plugins.apply("io.ht.build")
+        val ext = project.extensions.getByType(SutExtension::class.java)
+
+        ext.auxServices.observability {
+            enabled.set(true)
+            order.set(9)
+        }
+
+        (project as org.gradle.api.internal.project.ProjectInternal).evaluate()
+
+        val aux = ext.auxManifests.get().first { it.name == ObservabilityAux.NAME }
+        assertThat(aux.order).isEqualTo(9)
+    }
+
+    @Test
+    fun `all bundled aux services keep their declared order`() {
+        val project = ProjectBuilder.builder().build()
+        project.plugins.apply("io.ht.build")
+        val ext = project.extensions.getByType(SutExtension::class.java)
+
+        ext.auxServices.postgres { enabled.set(true) }
+        ext.auxServices.minio {
+            enabled.set(true)
+            bucket.set("htoffice-bucket")
+        }
+        ext.auxServices.observability { enabled.set(true) }
+
+        (project as org.gradle.api.internal.project.ProjectInternal).evaluate()
+
+        assertThat(ext.auxManifests.get().map { it.name })
+            .containsExactly(PostgresAux.NAME, MinioAux.NAME, ObservabilityAux.NAME)
+    }
+
+    @Test
     fun `deploySut depends on loadSutImages and exposes only user-registered manifests`() {
         val project = ProjectBuilder.builder().build()
         project.plugins.apply("io.ht.build")

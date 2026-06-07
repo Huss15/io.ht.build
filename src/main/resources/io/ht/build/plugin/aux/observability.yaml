@@ -1,0 +1,124 @@
+# OTel-LGTM aux service for local SUT development.
+#
+# Enable with:
+#   sut {
+#     auxServices {
+#       observability { enabled = true }
+#     }
+#   }
+#
+# Port-forward Grafana with:
+#   kubectl port-forward svc/observability 3000:3000
+#
+# NOT for production use.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: observability
+  labels:
+    app: observability
+    io.ht.build.plugin/aux: observability
+type: Opaque
+stringData:
+  GF_SECURITY_ADMIN_USER: admin
+  GF_SECURITY_ADMIN_PASSWORD: admin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: observability
+  labels:
+    app: observability
+    io.ht.build.plugin/aux: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: observability
+  template:
+    metadata:
+      labels:
+        app: observability
+        io.ht.build.plugin/aux: observability
+    spec:
+      containers:
+        - name: observability
+          image: grafana/otel-lgtm:0.8.1
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: observability
+          ports:
+            - name: grafana
+              containerPort: 3000
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+            - name: loki
+              containerPort: 3100
+            - name: tempo
+              containerPort: 3200
+            - name: prometheus
+              containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: grafana
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: grafana
+            initialDelaySeconds: 45
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: observability
+  labels:
+    app: observability
+    io.ht.build.plugin/aux: observability
+spec:
+  type: ClusterIP
+  selector:
+    app: observability
+  ports:
+    - name: grafana
+      port: 3000
+      targetPort: grafana
+    - name: otlp-grpc
+      port: 4317
+      targetPort: otlp-grpc
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http
+    - name: loki
+      port: 3100
+      targetPort: loki
+    - name: tempo
+      port: 3200
+      targetPort: tempo
+    - name: prometheus
+      port: 9090
+      targetPort: prometheus

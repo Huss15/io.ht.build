@@ -19,6 +19,7 @@ import kotlin.jvm.java
  *     auxServices {
  *         postgres { enabled = true }                       // order 1 (default)
  *         minio    { enabled = true; bucket = "my-bucket" } // order 2 (default)
+ *         observability { enabled = true }                  // order 3 (default)
  *     }
  * }
  * ```
@@ -30,6 +31,7 @@ abstract class AuxServicesExtension
     ) {
         val postgres: PostgresAux = objects.newInstance(PostgresAux::class.java)
         val minio: MinioAux = objects.newInstance(MinioAux::class.java)
+        val observability: ObservabilityAux = objects.newInstance(ObservabilityAux::class.java)
 
         fun postgres(configure: PostgresAux.() -> Unit) {
             postgres.configure()
@@ -37,6 +39,10 @@ abstract class AuxServicesExtension
 
         fun minio(configure: MinioAux.() -> Unit) {
             minio.configure()
+        }
+
+        fun observability(configure: ObservabilityAux.() -> Unit) {
+            observability.configure()
         }
     }
 
@@ -71,5 +77,20 @@ abstract class MinioAux {
         const val DEFAULT_ORDER: Int = 2
         const val RESOURCE_PATH: String = "/io/ht/build/plugin/aux/minio.yaml"
         const val BUCKET_PLACEHOLDER: String = "__BUCKET__"
+    }
+}
+
+/** Configuration for the bundled Grafana OTel-LGTM aux service (single-replica dev deployment). */
+abstract class ObservabilityAux {
+    /** Toggle deployment. Defaults to `false`. */
+    abstract val enabled: org.gradle.api.provider.Property<Boolean>
+
+    /** Deployment order in the registry. Defaults to 3. */
+    abstract val order: org.gradle.api.provider.Property<Int>
+
+    companion object {
+        const val NAME: String = "observability"
+        const val DEFAULT_ORDER: Int = 3
+        const val RESOURCE_PATH: String = "/io/ht/build/plugin/aux/observability.yaml"
     }
 }
