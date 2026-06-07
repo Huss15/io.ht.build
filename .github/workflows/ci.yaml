@@ -1,0 +1,55 @@
+name: PR CI
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build, Test, and Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SDKMAN
+        shell: bash
+        run: |
+          curl -fsSL "https://get.sdkman.io" -o /tmp/sdkman-install.sh
+          bash /tmp/sdkman-install.sh < /dev/null
+
+      - name: Install SDKMAN environment
+        shell: bash
+        run: |
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk env install
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Generate artifact version
+        id: version
+        shell: bash
+        run: |
+          release_date=$(date +%Y%m%d)
+          echo "artifact_version=1.0-${release_date}" >> "$GITHUB_OUTPUT"
+
+      - name: Run tests and build
+        run: ./gradlew -Pversion="${{ steps.version.outputs.artifact_version }}" test build
+
+      - name: Upload versioned build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ steps.version.outputs.artifact_version }}
+          path: |
+            build/libs/*.jar
+            build/publications/**
+          if-no-files-found: error
