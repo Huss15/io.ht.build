@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           source "$HOME/.sdkman/bin/sdkman-init.sh"
-          sdk env
+          sdk env install
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
