@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-test:
+    name: Build, Test, and Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    outputs:
+      artifact_version: ${{ steps.version.outputs.artifact_version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install SDKMAN
+        shell: bash
+        run: |
+          curl -fsSL "https://get.sdkman.io" -o /tmp/sdkman-install.sh
+          bash /tmp/sdkman-install.sh < /dev/null
+
+      - name: Install SDKMAN environment
+        shell: bash
+        run: |
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk env
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Generate artifact version
+        id: version
+        shell: bash
+        run: |
+          git fetch --tags --force
+          release_date=$(date +%Y%m%d)
+          latest_tag=$(git tag --list | grep -E '^[0-9]+\.0-[0-9]{8}$' | sort -V | tail -n 1)
+          if [ -n "$latest_tag" ]; then
+            counter=${latest_tag%%.*}
+            next_counter=$((counter + 1))
+          else
+            next_counter=1
+          fi
+          echo "artifact_version=${next_counter}.0-${release_date}" >> "$GITHUB_OUTPUT"
+
+      - name: Run tests and build
+        run: ./gradlew -Pversion="${{ steps.version.outputs.artifact_version }}" test build
+
+      - name: Upload versioned build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ steps.version.outputs.artifact_version }}
+          path: |
+            build/libs/*.jar
+            build/publications/**
+          if-no-files-found: error
+
+  create-release:
+    name: Release Approval Gate
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+    timeout-minutes: 10
+
+    steps:
+      - name: Await operator approval
+        run: echo "Release approved"
+
+  publish-release:
+    name: Create Official Release
+    needs:
+      - build-and-test
+      - create-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create and push release tag
+        shell: bash
+        run: |
+          git tag "${{ needs.build-and-test.outputs.artifact_version }}"
+          git push origin "${{ needs.build-and-test.outputs.artifact_version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build-and-test.outputs.artifact_version }}
+          name: ${{ needs.build-and-test.outputs.artifact_version }}
+          generate_release_notes: true
