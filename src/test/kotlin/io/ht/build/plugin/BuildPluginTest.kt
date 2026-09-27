@@ -366,7 +366,7 @@ class BuildPluginTest {
         assertThat(manifest).exists()
         val text = manifest.readText()
         assertThat(text).contains("kind: Deployment")
-        assertThat(text).contains("image: minio/minio")
+        assertThat(text).contains("image: quay.io/minio/minio")
         assertThat(text).contains("htoffice-bucket")
         assertThat(text).doesNotContain(MinioAux.BUCKET_PLACEHOLDER)
     }
