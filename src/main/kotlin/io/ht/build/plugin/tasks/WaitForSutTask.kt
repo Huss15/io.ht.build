@@ -140,7 +140,7 @@ abstract class WaitForSutTask : DefaultTask() {
          *
          * Set to 10 minutes to tolerate cold image pulls on a fresh kind cluster — kind nodes
          * run their own containerd and do not share the host Docker image cache, so first-time
-         * pulls of images like `postgres`, `minio/minio`, or `minio/mc` can easily take 2–5
+         * pulls of images like `postgres`, `quay.io/minio/minio`, or `quay.io/minio/mc` can easily take 2–5
          * minutes on slower connections.
          *
          * Override with `sut { cluster { rolloutTimeoutSeconds = 1200 } }` if your network
